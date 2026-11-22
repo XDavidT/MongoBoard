@@ -14,3 +14,4 @@ export const Database = ({ size = 14 }: P) => <svg {...base(size)}><ellipse cx="
 export const Collection = ({ size = 14 }: P) => <svg {...base(size)}><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 10h16M10 10v10" /></svg>;
 export const Link = ({ size = 13 }: P) => <svg {...base(size)}><path d="M9 7H6a4 4 0 0 0 0 8h3M15 7h3a4 4 0 0 1 0 8h-3M8 11h8" /></svg>;
 export const Server = ({ size = 14 }: P) => <svg {...base(size)}><rect x="3" y="4" width="18" height="7" rx="1.5" /><rect x="3" y="13" width="18" height="7" rx="1.5" /><path d="M7 7.5h.01M7 16.5h.01" /></svg>;
+export const Trash = ({ size = 13 }: P) => <svg {...base(size)}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></svg>;

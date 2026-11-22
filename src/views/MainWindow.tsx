@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { api, CollectionInfo, DatabaseInfo, errorText, OpenConnection, ProfileView, relativeTime, TAG_LABEL } from "../api";
+import { api, PROTECTED_DATABASES, CollectionInfo, DatabaseInfo, errorText, OpenConnection, ProfileView, relativeTime, TAG_LABEL } from "../api";
 import { CollectionView } from "../components/CollectionView";
-import { Chevron, Close, Collection, Database, Link, Plus, Refresh, Search, Server } from "../components/Icons";
+import { Chevron, Close, Collection, Database, Link, Plus, Refresh, Search, Server, Trash } from "../components/Icons";
 
 interface Tab {
   key: string;
@@ -41,6 +41,7 @@ export function MainWindow() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState<string>("quickstart");
   const [error, setError] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ conn: OpenConnection; db: string } | null>(null);
   const run = (p: Promise<unknown>) => p.catch((e) => setError(errorText(e)));
 
   // ---------------------------------------------------------------- loading
@@ -226,16 +227,31 @@ export function MainWindow() {
                       const showOpen = dOpen || (!!q && matchingCols.length > 0);
                       return (
                         <div key={d.name} role="treeitem" aria-expanded={showOpen}>
-                          <button
-                            className="row tree-btn tree-item"
-                            style={{ paddingLeft: 22 }}
-                            onClick={() => toggle(dKey, () => !isList(colList) && loadCols(p.id, d.name))}
-                          >
-                            <span className={`chev ${showOpen ? "open" : ""}`} aria-hidden="true"><Chevron /></span>
-                            <Database />
-                            <span className="ellipsis" style={{ flex: 1 }}>{d.name}</span>
-                            <span className="muted" style={{ fontSize: 10.5 }}>{formatBytes(d.sizeOnDisk)}</span>
-                          </button>
+                          <div className="row tree-item has-actions">
+                            <button
+                              className="row tree-btn"
+                              style={{ paddingLeft: 22 }}
+                              onClick={() => toggle(dKey, () => !isList(colList) && loadCols(p.id, d.name))}
+                            >
+                              <span className={`chev ${showOpen ? "open" : ""}`} aria-hidden="true"><Chevron /></span>
+                              <Database />
+                              <span className="ellipsis" style={{ flex: 1 }}>{d.name}</span>
+                              <span className="muted" style={{ fontSize: 10.5 }}>{formatBytes(d.sizeOnDisk)}</span>
+                            </button>
+                            <span className="tree-actions" style={{ width: 26, justifyContent: "flex-end" }}>
+                              {!p.readOnly && !PROTECTED_DATABASES.includes(d.name) && (
+                                <button
+                                  className="btn ghost icon-btn danger"
+                                  style={{ height: 22, width: 22 }}
+                                  aria-label={`Drop database ${d.name}`}
+                                  title="Drop database…"
+                                  onClick={() => setDropTarget({ conn: connById[p.id], db: d.name })}
+                                >
+                                  <Trash size={12} />
+                                </button>
+                              )}
+                            </span>
+                          </div>
                           {showOpen && colList === "loading" && <div className="tree-note" style={{ paddingLeft: 66 }}>Loading…</div>}
                           {showOpen && isError(colList) && <div className="banner error" style={{ margin: "4px 6px 4px 46px" }}>{colList.error}</div>}
                           {showOpen && isList(colList) && colList.length === 0 && <div className="tree-note" style={{ paddingLeft: 66 }}>No collections</div>}
@@ -315,6 +331,83 @@ export function MainWindow() {
           })}
         </main>
       </div>
+      {dropTarget && (
+        <DropDatabaseDialog
+          conn={dropTarget.conn}
+          db={dropTarget.db}
+          onCancel={() => setDropTarget(null)}
+          onDropped={() => {
+            const { conn, db } = dropTarget;
+            const id = conn.profile.id;
+            setDropTarget(null);
+            setTabs((t) => t.filter((x) => !(x.connId === id && x.db === db)));
+            setCols((c) => {
+              const next = { ...c };
+              delete next[`${id}/${db}`];
+              return next;
+            });
+            loadDbs(id);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DropDatabaseDialog({ conn, db, onCancel, onDropped }: { conn: OpenConnection; db: string; onCancel: () => void; onDropped: () => void }) {
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const prod = conn.profile.tag === "production";
+  const matches = typed === db;
+
+  async function drop() {
+    if (!matches) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.dropDatabase(conn.profile.id, db);
+      onDropped();
+    } catch (e) {
+      setError(errorText(e));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && !busy && onCancel()}>
+      <form
+        className="modal"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="drop-title"
+        onSubmit={(e) => {
+          e.preventDefault();
+          drop();
+        }}
+        onKeyDown={(e) => e.key === "Escape" && !busy && onCancel()}
+      >
+        <h2 id="drop-title">
+          Drop database <span className="mono">{db}</span>?
+        </h2>
+        <p>
+          This permanently deletes the database <strong>{db}</strong> on <strong>{conn.profile.name}</strong>, with all of its collections, documents and indexes. It can't be undone.
+        </p>
+        {prod && <div className="banner error">⚠️ This is a <strong>Production</strong> connection.</div>}
+        <label className="field">
+          Type the database name to confirm
+          <input className="input mono" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={db} autoFocus spellCheck={false} autoComplete="off" />
+        </label>
+        {error && <div className="banner error selectable">{error}</div>}
+        <div className="row" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="btn lg" onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+          <button type="submit" className="btn lg danger-solid" disabled={!matches || busy}>
+            {busy ? "Dropping…" : "Drop database"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -68,6 +68,7 @@ pub fn run() {
             commands::insert_document,
             commands::replace_document,
             commands::delete_document,
+            commands::drop_database,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MongoBoard");

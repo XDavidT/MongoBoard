@@ -418,3 +418,14 @@ pub async fn delete_document(
     writable(&store, id)?;
     mongo::delete(&sessions.get(id).await?, &db, &collection, &doc_id).await
 }
+
+#[tauri::command]
+pub async fn drop_database(
+    store: State<'_, ProfileStore>,
+    sessions: State<'_, Sessions>,
+    id: Uuid,
+    db: String,
+) -> AppResult<()> {
+    writable(&store, id)?;
+    mongo::drop_database(&sessions.get(id).await?, &db).await
+}

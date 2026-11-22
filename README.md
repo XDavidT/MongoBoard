@@ -76,6 +76,7 @@ MongoBoard covers the everyday work those GUIs are used for: saved connections, 
 - 🛡️ **Read-only connections** block every write in the backend, not just the UI
 - 🚨 **Production guard**: writes to a Production-tagged connection need a second, explicit confirmation
 - 🙅 `_id` can't be changed by accident (use Duplicate instead)
+- 🗑️ **Drop database** with type-the-name confirmation; system databases (`admin`, `local`, `config`) are protected
 
 ### 🍎 Feels like a Mac app
 - 🌗 **Light & dark mode** follow your macOS appearance automatically

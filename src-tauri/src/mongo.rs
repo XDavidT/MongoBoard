@@ -372,6 +372,19 @@ pub async fn delete(client: &Client, db: &str, collection: &str, id_shell: &str)
     Ok(coll.delete_one(filter).await?.deleted_count)
 }
 
+/// System databases that MongoBoard never drops.
+pub const PROTECTED_DATABASES: [&str; 3] = ["admin", "local", "config"];
+
+pub async fn drop_database(client: &Client, db: &str) -> AppResult<()> {
+    if PROTECTED_DATABASES.contains(&db) {
+        return Err(AppError::msg(format!(
+            "\"{db}\" is a system database and can't be dropped from MongoBoard"
+        )));
+    }
+    client.database(db).drop().await?;
+    Ok(())
+}
+
 /// End-to-end tests against a real server. Run with:
 /// `MONGODB_URI=mongodb://localhost:27017 cargo test -- --include-ignored`
 #[cfg(test)]
@@ -500,6 +513,10 @@ mod integration {
         assert_eq!(delete(&client, &db, coll, &id).await.unwrap(), 1);
         assert_eq!(count(&client, &db, coll, "{}").await.unwrap(), 2);
 
-        client.database(&db).drop().await.unwrap();
+        // Drop database: system databases are refused, ours goes away.
+        assert!(drop_database(&client, "admin").await.is_err());
+        drop_database(&client, &db).await.unwrap();
+        let after = list_databases(&client, None).await.unwrap();
+        assert!(!after.iter().any(|d| d.name == db));
     }
 }

@@ -134,9 +134,13 @@ export const api = {
     invoke<string>("insert_document", { id, db, collection, text }),
   replaceDocument: (id: string, db: string, collection: string, docId: string, text: string) =>
     invoke<number>("replace_document", { id, db, collection, docId, text }),
+  dropDatabase: (id: string, db: string) => invoke<void>("drop_database", { id, db }),
   deleteDocument: (id: string, db: string, collection: string, docId: string) =>
     invoke<number>("delete_document", { id, db, collection, docId }),
 };
+
+/** System databases the backend refuses to drop. */
+export const PROTECTED_DATABASES = ["admin", "local", "config"];
 
 export const TAG_LABEL: Record<EnvTag, string> = {
   production: "PROD",
