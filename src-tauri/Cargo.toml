@@ -1,6 +1,6 @@
 [package]
 name = "mongoboard"
-version = "0.1.4"
+version = "0.1.5"
 description = "MongoBoard — a desktop MongoDB client"
 edition = "2021"
 license = "MIT"

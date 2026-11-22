@@ -53,7 +53,7 @@ export function Updater() {
         !manual
           ? { kind: "idle" }
           : /valid release JSON|404/i.test(message)
-            ? { kind: "error", message: "no automatic update has been published yet" }
+            ? { kind: "upToDate" } // nothing published for the updater yet
             : { kind: "error", message },
       );
     } finally {

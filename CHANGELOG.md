@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-11-22
+
+### Changed
+- 🔄 First release delivered through automatic updates (signed `latest.json`).
+- "Check for Updates…" no longer shows an error when no update is published; it says you're on the latest version.
+
 ## [0.1.4] - 2026-11-22
 
 ### Added
@@ -37,6 +43,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - 🌗 Light and dark mode following macOS
 - 📦 Universal macOS build (Apple Silicon + Intel) published on GitHub Releases
 
+[0.1.5]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.5
 [0.1.4]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.4
 [0.1.3]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.3
 [0.1.2]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.2
