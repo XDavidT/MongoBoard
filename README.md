@@ -57,7 +57,7 @@ MongoBoard covers the everyday work those GUIs are used for: saved connections, 
 
 ### 🔌 Connections
 - 📇 **Connection Manager** pop-up (`⌘⇧C`) to connect, add, edit, duplicate or delete; connections are grouped by environment (Production / Non-production / Local)
-- 🔗 Paste any `mongodb://` or `mongodb+srv://` string. Atlas, replica sets and sharded clusters all work
+- 🔗 Paste any `mongodb://` or `mongodb+srv://` string, **even a Studio 3T or Compass export**: user, password, auth settings and name are filled in for you, and tool-specific junk is stripped. Atlas, replica sets and sharded clusters all work
 - 🔑 **Username & password (SCRAM)**: passwords live in the **macOS Keychain**, never in a config file
 - ☁️ **AWS IAM (`MONGODB-AWS`)**: use your default AWS credential chain, SSO, an attached role, or any named profile from `~/.aws`
 - 🧪 **Test before you save**: shows server version, topology and latency
@@ -113,7 +113,7 @@ MongoBoard covers the everyday work those GUIs are used for: saved connections, 
 
 ## 🚀 Quick start
 
-1. **New connection** (`⌘N`) → paste your connection string.
+1. **New connection** (`⌘N`) → paste your connection string (a Studio 3T export works too: the fields fill in by themselves).
 2. Pick **Authentication**: *Username and password*, *AWS IAM*, or *None*.
 3. Tag it (e.g. **Production**) and tick **Read-only** if you only want to look.
 4. **Test** → **Save & connect**. The connection appears in the sidebar; click a collection to open it in a tab.

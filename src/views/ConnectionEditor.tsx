@@ -31,6 +31,37 @@ export function ConnectionEditor({ id, newId }: { id: string | null; newId: stri
   }, [id]);
 
   const set = <K extends keyof Profile>(key: K, value: Profile[K]) => setProfile((p) => ({ ...p, [key]: value }));
+  const [parsedNote, setParsedNote] = useState<string | null>(null);
+
+  /** Does this look like a full connection string worth splitting into fields? */
+  const needsParsing = (uri: string) => /^mongodb(\+srv)?:\/\//i.test(uri.trim()) && (/@/.test(uri.split("?")[0]) || /[?&](3t\.|authSource=|authMechanism=)/i.test(uri) || /:\/\/[^/?]+\/[^?]/.test(uri));
+
+  async function applyConnectionString(raw: string) {
+    const text = raw.trim();
+    if (!needsParsing(text)) {
+      set("uri", text);
+      return;
+    }
+    try {
+      const parsed = await api.parseConnectionString(text);
+      setProfile((p) => ({
+        ...p,
+        uri: parsed.uri,
+        name: p.name.trim() ? p.name : (parsed.name ?? p.name),
+        tag: p.tag === "none" && parsed.tag ? parsed.tag : p.tag,
+        auth: parsed.auth ?? p.auth,
+        username: parsed.username ?? p.username,
+        authSource: parsed.authSource ?? p.authSource,
+        authMechanism: parsed.authMechanism ?? p.authMechanism,
+        awsProfile: parsed.awsProfile ?? p.awsProfile,
+        defaultDatabase: p.defaultDatabase?.trim() ? p.defaultDatabase : (parsed.defaultDatabase ?? p.defaultDatabase),
+      }));
+      if (parsed.password != null) setPassword(parsed.password);
+      setParsedNote(parsed.notes.length ? `Filled in from the connection string: ${parsed.notes.join(", ")}.` : null);
+    } catch {
+      set("uri", text);
+    }
+  }
 
   async function test() {
     setTesting(true);
@@ -109,13 +140,30 @@ export function ConnectionEditor({ id, newId }: { id: string | null; newId: stri
                 className="input mono"
                 value={profile.uri}
                 onChange={(e) => set("uri", e.target.value)}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData("text");
+                  const input = e.currentTarget;
+                  // Replace the whole field when pasting over it or into an empty/default value.
+                  const replacesAll = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+                  if (needsParsing(pasted) && (replacesAll || !profile.uri.trim() || profile.uri === "mongodb://localhost:27017")) {
+                    e.preventDefault();
+                    applyConnectionString(pasted);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (needsParsing(e.target.value)) applyConnectionString(e.target.value);
+                }}
                 placeholder="mongodb+srv://cluster0.example.mongodb.net/"
                 spellCheck={false}
                 autoFocus
               />
-              <span className="muted" style={{ fontWeight: 400 }}>
-                If you paste a string with user:password, they're moved to the Authentication tab and the password goes to the Keychain.
-              </span>
+              {parsedNote ? (
+                <span className="banner ok" style={{ fontWeight: 400 }}>✓ {parsedNote}</span>
+              ) : (
+                <span className="muted" style={{ fontWeight: 400 }}>
+                  Paste a full connection string (including Studio 3T or Compass exports): the user, password, auth settings and name are filled in for you, and the password goes to the Keychain.
+                </span>
+              )}
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
               <label className="field">

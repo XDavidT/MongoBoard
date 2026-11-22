@@ -5,8 +5,8 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 const invoke: typeof tauriInvoke =
   import.meta.env.VITE_DEMO === "1"
     ? (cmd, args) =>
-        cmd.startsWith("open_connection_")
-          ? tauriInvoke(cmd, args) // window management stays real in demo mode
+        cmd.startsWith("open_connection_") || cmd === "parse_connection_string"
+          ? tauriInvoke(cmd, args) // window management and pure parsing stay real in demo mode
           : import("./demo").then((m) => m.demoInvoke(cmd, args as Record<string, unknown>))
     : tauriInvoke;
 
@@ -31,6 +31,20 @@ export interface Profile {
 
 export interface ProfileView extends Profile {
   hasPassword: boolean;
+}
+
+export interface ParsedUri {
+  uri: string;
+  name?: string | null;
+  username?: string | null;
+  password?: string | null;
+  auth?: AuthKind | null;
+  authSource?: string | null;
+  authMechanism?: string | null;
+  awsProfile?: string | null;
+  defaultDatabase?: string | null;
+  tag?: EnvTag | null;
+  notes: string[];
 }
 
 export interface ServerInfo {
@@ -99,6 +113,7 @@ export const api = {
     invoke<ProfileView>("save_profile", { input: { ...profile, password } }),
   duplicateProfile: (id: string) => invoke<ProfileView>("duplicate_profile", { id }),
   deleteProfile: (id: string) => invoke<void>("delete_profile", { id }),
+  parseConnectionString: (uri: string) => invoke<ParsedUri>("parse_connection_string", { uri }),
   testConnection: (profile: Profile, password: string | null) =>
     invoke<ServerInfo>("test_connection", { input: { ...profile, password } }),
 

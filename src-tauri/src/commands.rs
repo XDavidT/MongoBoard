@@ -354,6 +354,12 @@ pub async fn count_documents(
     mongo::count(&sessions.get(id).await?, &db, &collection, &filter).await
 }
 
+/// Split a pasted connection string into editor fields (no network access).
+#[tauri::command]
+pub fn parse_connection_string(uri: String) -> crate::profiles::ParsedUri {
+    crate::profiles::parse_connection_string(&uri)
+}
+
 /// Parse + reformat shell JSON without touching the database (editor "Format"/validation).
 #[tauri::command]
 pub fn format_document(text: String) -> AppResult<String> {

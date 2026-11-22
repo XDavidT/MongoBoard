@@ -199,6 +199,155 @@ pub fn split_credentials(uri: &str) -> SplitUri {
     }
 }
 
+/// What we could pull out of a pasted connection string.
+#[derive(Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ParsedUri {
+    /// Cleaned connection string: no credentials, no auth options, no Studio 3T settings.
+    pub uri: String,
+    pub name: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub auth: Option<AuthKind>,
+    pub auth_source: Option<String>,
+    pub auth_mechanism: Option<String>,
+    pub aws_profile: Option<String>,
+    pub default_database: Option<String>,
+    /// Guessed from the connection name (prod / qa / dev / localhost).
+    pub tag: Option<EnvTag>,
+    /// Human-readable list of what was moved or dropped.
+    pub notes: Vec<String>,
+}
+
+/// Split a pasted connection string (including Studio 3T / Compass exports) into profile fields.
+/// Credentials and auth options move to their own fields; `3t.*` settings are dropped;
+/// everything the driver understands stays in the URI.
+pub fn parse_connection_string(input: &str) -> ParsedUri {
+    let split = split_credentials(input);
+    let mut out = ParsedUri {
+        username: split.username,
+        password: split.password,
+        ..Default::default()
+    };
+    if out.username.is_some() {
+        out.notes.push("username".into());
+    }
+    if out.password.is_some() {
+        out.notes.push("password → Keychain".into());
+    }
+
+    let uri = split.uri;
+    let (base, query) = match uri.split_once('?') {
+        Some((b, q)) => (b.to_string(), q.to_string()),
+        None => (uri.clone(), String::new()),
+    };
+
+    // Path after the hosts = default/auth database.
+    let mut base = base;
+    if let Some(scheme_end) = base.find("://") {
+        if let Some(slash) = base[scheme_end + 3..].find('/') {
+            let at = scheme_end + 3 + slash;
+            let db = percent_decode(&base[at + 1..]);
+            base.truncate(at);
+            if !db.is_empty() {
+                out.default_database = Some(db);
+            }
+        }
+    }
+
+    let mut kept: Vec<&str> = Vec::new();
+    let mut dropped_3t = 0;
+    for pair in query.split('&').filter(|p| !p.is_empty()) {
+        let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
+        let value = percent_decode(&value.replace('+', " "));
+        let lower = key.to_ascii_lowercase();
+        match lower.as_str() {
+            "authsource" => out.auth_source = Some(value),
+            "authmechanism" => match value.to_ascii_uppercase().as_str() {
+                "SCRAM-SHA-1" | "SCRAM-SHA-256" => {
+                    out.auth_mechanism = Some(value.to_ascii_uppercase())
+                }
+                "MONGODB-AWS" => out.auth = Some(AuthKind::Aws),
+                // Mechanisms the editor has no fields for stay in the URI.
+                _ => kept.push(pair),
+            },
+            "authmechanismproperties"
+                if out.auth == Some(AuthKind::Aws) || value.contains("AWS") =>
+            {
+                // AWS_PROFILE:name is a MongoBoard convenience; session tokens come from the credential chain.
+                for prop in value.split(',') {
+                    if let Some(p) = prop.strip_prefix("AWS_PROFILE:") {
+                        out.aws_profile = Some(p.to_string());
+                    }
+                }
+            }
+            "3t.connection.name" => out.name = Some(value).filter(|v| !v.is_empty()),
+            k if k.starts_with("3t.") => dropped_3t += 1,
+            _ => kept.push(pair),
+        }
+    }
+
+    if out.auth.is_none() && (out.username.is_some() || out.password.is_some()) {
+        out.auth = Some(AuthKind::Password);
+    }
+    if out.auth == Some(AuthKind::Aws) {
+        // Credentials come from AWS, not from the URI.
+        out.username = None;
+        out.password = None;
+        out.auth_source = None;
+        out.notes
+            .retain(|n| !n.starts_with("username") && !n.starts_with("password"));
+    }
+    // With password auth and no explicit authSource, the path database is where the user lives.
+    if out.auth == Some(AuthKind::Password) && out.auth_source.is_none() {
+        out.auth_source = out.default_database.clone();
+    }
+    // "admin" as the path is almost always just the auth database, not a database to open.
+    if out.default_database.as_deref() == Some("admin") {
+        out.default_database = None;
+    }
+
+    if out.auth_source.is_some() {
+        out.notes.push("auth database".into());
+    }
+    if out.auth_mechanism.is_some() {
+        out.notes.push("mechanism".into());
+    }
+    if out.auth == Some(AuthKind::Aws) {
+        out.notes.push("AWS IAM".into());
+    }
+    if let Some(name) = &out.name {
+        out.notes.push("name".into());
+        let n = name.to_ascii_lowercase();
+        let is_non_prod = n.contains("non-prod") || n.contains("nonprod") || n.contains("non_prod");
+        out.tag = if n.contains("prod") && !is_non_prod {
+            Some(EnvTag::Production)
+        } else if n.contains("qa") || n.contains("stag") || n.contains("uat") || is_non_prod {
+            Some(EnvTag::Qa)
+        } else if n.contains("dev") {
+            Some(EnvTag::Dev)
+        } else {
+            None
+        };
+    }
+    if base.contains("localhost") || base.contains("127.0.0.1") {
+        out.tag = Some(EnvTag::Local);
+    }
+    if dropped_3t > 0 {
+        out.notes.push(format!(
+            "removed {dropped_3t} Studio 3T setting{}",
+            if dropped_3t == 1 { "" } else { "s" }
+        ));
+    }
+
+    out.uri = if kept.is_empty() {
+        format!("{base}/")
+    } else {
+        format!("{base}/?{}", kept.join("&"))
+    };
+    out
+}
+
 pub fn percent_decode(s: &str) -> String {
     let bytes = s.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
@@ -254,6 +403,57 @@ mod tests {
         let user_only = split_credentials("mongodb://bob@localhost");
         assert_eq!(user_only.username.as_deref(), Some("bob"));
         assert_eq!(user_only.password, None);
+    }
+
+    #[test]
+    fn parses_studio_3t_export() {
+        let p = parse_connection_string(
+            "mongodb+srv://david:s3cr%40t@light-pl-0.0ogdx.mongodb.net/admin?retryWrites=true&loadBalanced=false&replicaSet=atlas-gsn65o-shard-0&readPreference=primary&srvServiceName=mongodb&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-1&3t.uriVersion=3&3t.connection.name=Light-PL&3t.databases=admin&3t.alwaysShowAuthDB=true&3t.alwaysShowDBFromUserRole=true&3t.sslTlsVersion=TLS",
+        );
+        assert_eq!(
+            p.uri,
+            "mongodb+srv://light-pl-0.0ogdx.mongodb.net/?retryWrites=true&loadBalanced=false&replicaSet=atlas-gsn65o-shard-0&readPreference=primary&srvServiceName=mongodb&connectTimeoutMS=10000"
+        );
+        assert_eq!(p.name.as_deref(), Some("Light-PL"));
+        assert_eq!(p.username.as_deref(), Some("david"));
+        assert_eq!(p.password.as_deref(), Some("s3cr@t"));
+        assert_eq!(p.auth, Some(AuthKind::Password));
+        assert_eq!(p.auth_source.as_deref(), Some("admin"));
+        assert_eq!(p.auth_mechanism.as_deref(), Some("SCRAM-SHA-1"));
+        assert_eq!(p.default_database, None);
+        assert!(
+            p.notes.iter().any(|n| n.contains("5 Studio 3T")),
+            "{:?}",
+            p.notes
+        );
+    }
+
+    #[test]
+    fn parses_other_shapes() {
+        let aws = parse_connection_string("mongodb+srv://c.example.net/?authMechanism=MONGODB-AWS&authSource=$external&authMechanismProperties=AWS_PROFILE:dev");
+        assert_eq!(aws.auth, Some(AuthKind::Aws));
+        assert_eq!(aws.aws_profile.as_deref(), Some("dev"));
+        assert_eq!(aws.uri, "mongodb+srv://c.example.net/");
+
+        let plain =
+            parse_connection_string("mongodb://bob:pw@h1:27017,h2:27017/deliveries?replicaSet=rs0");
+        assert_eq!(plain.uri, "mongodb://h1:27017,h2:27017/?replicaSet=rs0");
+        assert_eq!(plain.default_database.as_deref(), Some("deliveries"));
+        assert_eq!(plain.auth_source.as_deref(), Some("deliveries"));
+
+        let local = parse_connection_string("mongodb://localhost:27017");
+        assert_eq!(local.uri, "mongodb://localhost:27017/");
+        assert_eq!(local.tag, Some(EnvTag::Local));
+        assert_eq!(local.auth, None);
+
+        assert_eq!(
+            parse_connection_string("mongodb+srv://a/?3t.connection.name=NON-PROD").tag,
+            Some(EnvTag::Qa)
+        );
+        assert_eq!(
+            parse_connection_string("mongodb+srv://a/?3t.connection.name=prod-us").tag,
+            Some(EnvTag::Production)
+        );
     }
 
     #[test]

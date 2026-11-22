@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-11-22
+
+### Added
+- 📋 **Paste a full connection string** into the connection editor (including Studio 3T and Compass exports): the username, password, auth database, mechanism, AWS IAM settings and connection name are filled into their fields, the password goes to the Keychain, Studio 3T-only `3t.*` settings are removed, and the environment tag is guessed from the name.
+
 ## [0.1.1] - 2026-11-19
 
 ### Changed
@@ -20,5 +25,6 @@ All notable changes to this project are documented here. The format follows [Kee
 - 🌗 Light and dark mode following macOS
 - 📦 Universal macOS build (Apple Silicon + Intel) published on GitHub Releases
 
+[0.1.2]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.2
 [0.1.1]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.1
 [0.1.0]: https://github.com/XDavidT/MongoBoard/releases/tag/v0.1.0

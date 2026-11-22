@@ -53,6 +53,7 @@ pub fn run() {
             commands::duplicate_profile,
             commands::delete_profile,
             commands::test_connection,
+            commands::parse_connection_string,
             commands::open_connection_manager,
             commands::open_connection_editor,
             commands::open_connection,
