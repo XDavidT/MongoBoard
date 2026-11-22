@@ -804,6 +804,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bson"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3f109694c4f45353972af96bf97d8a057f82e2d6e496457f4d135b9867a518c"
+dependencies = [
+ "ahash",
+ "base64 0.22.1",
+ "bitvec",
+ "getrandom 0.3.4",
+ "hex",
+ "indexmap 2.14.2",
+ "js-sys",
+ "rand 0.9.5",
+ "serde_bytes",
+ "simdutf8",
+ "thiserror 2.0.21",
+ "time",
+ "uuid",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3105,8 +3126,8 @@ version = "0.1.4"
 dependencies = [
  "aws-config",
  "aws-credential-types",
- "base64 0.22.1",
- "bson",
+ "base64 0.23.1",
+ "bson 3.1.0",
  "futures-util",
  "keyring",
  "mongodb",
@@ -3127,7 +3148,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8426a875ded61430d4a811dbfda7633b6b8af0225c547fc6c28b8b0aa7d79a13"
 dependencies = [
- "bson",
+ "bson 2.15.0",
  "mongocrypt-sys",
  "once_cell",
  "serde",
@@ -3150,7 +3171,7 @@ dependencies = [
  "aws-sigv4",
  "base64 0.22.1",
  "bitflags 2.13.2",
- "bson",
+ "bson 2.15.0",
  "chrono",
  "derive-where",
  "futures-core",
