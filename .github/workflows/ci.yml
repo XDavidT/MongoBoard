@@ -68,7 +68,10 @@ jobs:
           workspaces: src-tauri
       - run: npm ci
       - name: Build universal app
-        run: npx tauri build --target universal-apple-darwin --bundles app,dmg
+        run: |
+          # Update signing only happens in release.yml.
+          echo '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/no-updater.json"
+          npx tauri build --target universal-apple-darwin --bundles app,dmg --config "$RUNNER_TEMP/no-updater.json"
       - uses: actions/upload-artifact@v7
         with:
           name: MongoBoard-macOS

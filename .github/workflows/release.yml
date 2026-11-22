@@ -70,10 +70,23 @@ jobs:
             cat notes.md
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+      - name: Updater signing
+        if: steps.version.outputs.skip != 'true'
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          # Without the key, still publish the release but skip the auto-update files.
+          if [ -z "$KEY" ]; then
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY secret is not set: this release will not be offered as an automatic update."
+            echo '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/no-updater.json"
+            echo "EXTRA_ARGS=--config $RUNNER_TEMP/no-updater.json" >> "$GITHUB_ENV"
+          fi
       - uses: tauri-apps/tauri-action@v1
         if: steps.version.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ steps.version.outputs.tag }}
           releaseName: MongoBoard ${{ steps.version.outputs.tag }}
@@ -81,4 +94,4 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
-          args: --target universal-apple-darwin --bundles app,dmg
+          args: --target universal-apple-darwin --bundles app,dmg ${{ env.EXTRA_ARGS }}

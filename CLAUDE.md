@@ -20,3 +20,4 @@ MONGODB_URI=… cargo test -- --include-ignored   # CRUD integration (CI runs th
 
 ## Releasing
 Add a CHANGELOG entry, then bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` on `main`. `release.yml` creates tag `vX.Y.Z` and publishes the `.dmg` automatically (it skips versions that already have a release).
+- Auto-update: `tauri-plugin-updater` reads `releases/latest/download/latest.json`; `release.yml` signs it with the `TAURI_SIGNING_PRIVATE_KEY(_PASSWORD)` secrets. Never change `plugins.updater.pubkey` without a new key pair, or installed apps stop accepting updates. UI is `src/components/Updater.tsx`.

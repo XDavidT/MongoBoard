@@ -2,10 +2,14 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permissions for all MongoBoard windows",
-  "windows": ["*"],
+  "windows": [
+    "*"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-close",
-    "core:window:allow-set-title"
+    "core:window:allow-set-title",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

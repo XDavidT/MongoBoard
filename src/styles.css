@@ -211,3 +211,8 @@ button:disabled { cursor: not-allowed; }
 .modal { width: 100%; max-width: 460px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 14px; padding: 20px; }
 .modal h2 { margin: 0; font-size: 16px; }
 .modal p { margin: 0; line-height: 1.5; color: var(--text-2); }
+
+/* Updater pill in the main toolbar */
+.update-pill { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 6px 0 12px; border-radius: 15px; font-size: 12px; background: var(--hover); border: 1px solid var(--border); color: var(--text-2); max-width: 520px; overflow: hidden; white-space: nowrap; }
+.update-pill.ready { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); font-weight: 600; }
+.update-pill.error { background: var(--danger-soft); border-color: transparent; color: var(--danger-text); }

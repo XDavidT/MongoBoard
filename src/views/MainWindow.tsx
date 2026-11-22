@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { api, PROTECTED_DATABASES, CollectionInfo, DatabaseInfo, errorText, OpenConnection, ProfileView, relativeTime, TAG_LABEL } from "../api";
 import { CollectionView } from "../components/CollectionView";
+import { Updater } from "../components/Updater";
 import { Chevron, Close, Collection, Database, Link, Plus, Refresh, Search, Server, Trash } from "../components/Icons";
 
 interface Tab {
@@ -151,6 +152,8 @@ export function MainWindow() {
         <button className="btn" onClick={() => run(api.openConnectionEditor(null))}>
           <Plus /> New connection
         </button>
+        <span className="spacer" />
+        <Updater />
         {error && (
           <span className="row banner error" style={{ padding: "4px 10px" }}>
             {error}

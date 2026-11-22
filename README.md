@@ -81,6 +81,7 @@ MongoBoard covers the everyday work those GUIs are used for: saved connections, 
 ### 🍎 Feels like a Mac app
 - 🌗 **Light & dark mode** follow your macOS appearance automatically
 - ⌨️ Menu bar and shortcuts: `⌘N` new connection, `⌘⇧C` Connection Manager, `⌘↵` run query, `⌘E` edit, `⌘S` save
+- 🔄 **Self-updating**: new versions download in the background from GitHub Releases (signed and verified), then one click to restart
 - 🪶 Small and fast: ~16 MB universal build (Apple Silicon + Intel), no Electron
 
 ## 📸 Screenshots
@@ -144,7 +145,8 @@ If you use SSO, run `aws sso login --profile <name>` first.
 - [ ] 📦 Import / export (JSON, CSV)
 - [ ] 🧾 Field-by-field document editor
 - [ ] 🚇 SSH tunnel and X.509 certificates
-- [ ] ✍️ Signed & notarized builds, auto-update
+- [x] 🔄 Automatic, signed updates
+- [ ] ✍️ Notarized builds (no right-click → Open on first launch)
 
 Have an idea? [Open a feature request](https://github.com/XDavidT/MongoBoard/issues/new?template=feature_request.yml) 💡
 

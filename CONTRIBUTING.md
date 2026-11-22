@@ -32,3 +32,4 @@ CI runs the same checks (with a real `mongo:8` container) on every pull request.
 1. Add a `CHANGELOG.md` entry for the new version.
 2. Bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`, and merge to `main`.
 3. The **Release** workflow notices the new version, creates the `vX.Y.Z` tag, builds the universal `.dmg` and publishes the release (with notes from the changelog). Pushing a `vX.Y.Z` tag yourself works too.
+4. Automatic updates need two repository secrets: `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the key that matches `plugins.updater.pubkey` in `tauri.conf.json`). Without them the release is still published, but installed apps won't be offered it.

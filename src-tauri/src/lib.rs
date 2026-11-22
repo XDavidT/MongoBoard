@@ -12,6 +12,8 @@ use tauri::{Emitter, Manager};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let dir = app.path().app_config_dir()?;
             let path = dir.join("connections.json");
@@ -33,6 +35,13 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         let _ = commands::open_connection_editor(app, None).await;
                     });
+                }
+                "check-updates" => {
+                    // The main window owns the updater UI.
+                    let _ = app.emit_to("main", "menu", "check-updates".to_string());
+                    if let Some(main) = app.get_webview_window("main") {
+                        let _ = main.set_focus();
+                    }
                 }
                 id => {
                     // Other menu actions (run query, add document …) go to the focused window only.
@@ -90,6 +99,8 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let edit_doc = MenuItemBuilder::with_id("edit-document", "Edit Document…")
         .accelerator("CmdOrCtrl+E")
         .build(app)?;
+    let check_updates =
+        MenuItemBuilder::with_id("check-updates", "Check for Updates…").build(app)?;
     let refresh = MenuItemBuilder::with_id("refresh", "Refresh")
         .accelerator("CmdOrCtrl+R")
         .build(app)?;
@@ -100,6 +111,7 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         true,
         &[
             &PredefinedMenuItem::about(app, None, None)?,
+            &check_updates,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, None)?,
             &PredefinedMenuItem::hide_others(app, None)?,
